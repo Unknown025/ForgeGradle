@@ -21,7 +21,7 @@ repositories {
     mavenLocal()
     maven {
         name = "forge"
-        url = "http://files.minecraftforge.net/maven"
+        url = "https://files.minecraftforge.net/maven"
     }
     maven {
         // because Srg2Source needs an eclipse dependency.
@@ -113,10 +113,10 @@ artifacts {
     archives javadocJar
 }
 
-//These should add a compile time only dependancies to eclipse, ide, and javac, but NOT to the generated POM on maven.
-sourceSets.main.compileClasspath += [ configurations.compileOnly ]
-idea.module.scopes.PROVIDED.plus += [ configurations.compileOnly ]
-eclipse.classpath.plusConfigurations += [ configurations.compileOnly ]
+//These should add a compile time only dependencies to eclipse, ide, and javac, but NOT to the generated POM on maven.
+//sourceSets.main.compileClasspath += [ configurations.compileOnly ]
+//idea.module.scopes.PROVIDED.plus += [ configurations.compileOnly ]
+//eclipse.classpath.plusConfigurations += [ configurations.compileOnly ]
 
 test {
     if (project.hasProperty("filesmaven")) // disable this test when on the forge jenkins

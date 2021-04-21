@@ -41,96 +41,75 @@ import org.gradle.api.internal.file.collections.MinimalFileTree;
 import org.gradle.util.DeprecationLogger;
 import org.gradle.util.GFileUtils;
 
-public class ZipFileTree implements MinimalFileTree
-{
+public class ZipFileTree implements MinimalFileTree {
     private final File zipFile;
 
-    public ZipFileTree(File zipFile)
-    {
+    public ZipFileTree(File zipFile) {
         this.zipFile = zipFile;
     }
 
-    public String getDisplayName()
-    {
+    public String getDisplayName() {
         return String.format("ZIP '%s'", zipFile);
     }
 
-    public void visit(FileVisitor visitor)
-    {
-        if (!zipFile.exists())
-        {
+    public void visit(FileVisitor visitor) {
+        if (!zipFile.exists()) {
             DeprecationLogger.nagUserOfDeprecatedBehaviour(
                     String.format("The specified zip file %s does not exist and will be silently ignored", getDisplayName())
-                    );
+            );
             return;
         }
-        if (!zipFile.isFile())
-        {
+        if (!zipFile.isFile()) {
             throw new InvalidUserDataException(String.format("Cannot expand %s as it is not a file.", getDisplayName()));
         }
 
         AtomicBoolean stopFlag = new AtomicBoolean();
 
-        try
-        {
+        try {
             ZipFile zip = new ZipFile(zipFile);
-            try
-            {
+            try {
                 // The iteration order of zip.getEntries() is based on the hash of the zip entry. This isn't much use
                 // to us. So, collect the entries in a map and iterate over them in alphabetical order.
                 Map<String, ZipEntry> entriesByName = new TreeMap<String, ZipEntry>();
                 Enumeration<? extends ZipEntry> entries = zip.entries();
-                while (entries.hasMoreElements())
-                {
-                    ZipEntry entry = (ZipEntry) entries.nextElement();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
                     entriesByName.put(entry.getName(), entry);
                 }
                 Iterator<ZipEntry> sortedEntries = entriesByName.values().iterator();
-                while (!stopFlag.get() && sortedEntries.hasNext())
-                {
+                while (!stopFlag.get() && sortedEntries.hasNext()) {
                     ZipEntry entry = sortedEntries.next();
-                    if (entry.isDirectory())
-                    {
+                    if (entry.isDirectory()) {
                         visitor.visitDir(new DetailsImpl(entry, zip, stopFlag));
-                    }
-                    else
-                    {
+                    } else {
                         visitor.visitFile(new DetailsImpl(entry, zip, stopFlag));
                     }
                 }
-            }
-            finally
-            {
+            } finally {
                 zip.close();
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new GradleException(String.format("Could not expand %s.", getDisplayName()), e);
         }
     }
 
-    private class DetailsImpl implements FileVisitDetails
-    {
-        private final ZipEntry      entry;
-        private final ZipFile       zip;
+    private class DetailsImpl implements FileVisitDetails {
+        private final ZipEntry entry;
+        private final ZipFile zip;
         private final AtomicBoolean stopFlag;
-        private File                file;
+        private File file;
 
-        public DetailsImpl(ZipEntry entry, ZipFile zip, AtomicBoolean stopFlag)
-        {
+        public DetailsImpl(ZipEntry entry, ZipFile zip, AtomicBoolean stopFlag) {
             this.entry = entry;
             this.zip = zip;
             this.stopFlag = stopFlag;
         }
 
-        public String getDisplayName()
-        {
+        public String getDisplayName() {
             return String.format("zip entry %s!%s", zipFile, entry.getName());
         }
 
-        public void stopVisiting()
-        {
+        public void stopVisiting() {
             stopFlag.set(true);
         }
 
@@ -138,137 +117,107 @@ public class ZipFileTree implements MinimalFileTree
          * Changed this to return a broken value! Be warned! Will not be a valid file, do not read it.
          * Standard Jar/Zip tasks don't care about this, even though they call it.
          */
-        public File getFile()
-        {
-            if (file == null)
-            {
+        public File getFile() {
+            if (file == null) {
                 file = new File(entry.getName());
                 //copyTo(file);
             }
             return file;
         }
 
-        public long getLastModified()
-        {
+        public long getLastModified() {
             return entry.getTime();
         }
 
-        public boolean isDirectory()
-        {
+        public boolean isDirectory() {
             return entry.isDirectory();
         }
 
-        public long getSize()
-        {
+        public long getSize() {
             return entry.getSize();
         }
 
-        public InputStream open()
-        {
-            try
-            {
+        public InputStream open() {
+            try {
                 return zip.getInputStream(entry);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
 
-        public RelativePath getRelativePath()
-        {
+        public RelativePath getRelativePath() {
             return new RelativePath(!entry.isDirectory(), entry.getName().split("/"));
         }
-        
+
         // Stuff below this line was    --------------------------------------------------
         // Stolen from Gradle's  org.gradle.api.internal.file.AbstractFileTreeElement 
-        
-        public String toString()
-        {
+
+        public String toString() {
             return getDisplayName();
         }
 
-        public String getName()
-        {
+        public String getName() {
             return getRelativePath().getLastName();
         }
 
-        public String getPath()
-        {
+        public String getPath() {
             return getRelativePath().getPathString();
         }
 
-        public void copyTo(OutputStream outstr)
-        {
-            try
-            {
+        public void copyTo(OutputStream outstr) {
+            try {
                 InputStream inputStream = open();
-                try
-                {
+                try {
                     IOUtils.copyLarge(inputStream, outstr);
-                }
-                finally
-                {
+                } finally {
                     inputStream.close();
                 }
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
 
-        public boolean copyTo(File target)
-        {
+        public boolean copyTo(File target) {
             validateTimeStamps();
-            try
-            {
-                if (isDirectory())
-                {
+            try {
+                if (isDirectory()) {
                     GFileUtils.mkdirs(target);
-                }
-                else
-                {
+                } else {
                     GFileUtils.mkdirs(target.getParentFile());
                     copyFile(target);
                 }
                 return true;
-            }
-            catch (Exception e)
-            {
-                throw new GradleException(String.format("Could not copy %s to '%s'.", new Object[] { getDisplayName(), target }), e);
+            } catch (Exception e) {
+                throw new GradleException(String.format("Could not copy %s to '%s'.", getDisplayName(), target), e);
             }
         }
 
-        private void validateTimeStamps()
-        {
+        private void validateTimeStamps() {
             long lastModified = getLastModified();
             if (lastModified < 0L)
-                throw new GradleException(String.format("Invalid Timestamp %s for '%s'.", new Object[] { Long.valueOf(lastModified), getDisplayName() }));
+                throw new GradleException(String.format("Invalid Timestamp %s for '%s'.", lastModified, getDisplayName()));
         }
 
-        private void copyFile(File target) throws IOException
-        {
+        private void copyFile(File target) throws IOException {
             FileOutputStream outputStream = new FileOutputStream(target);
-            try
-            {
+            try {
                 copyTo(outputStream);
-            }
-            finally
-            {
+            } finally {
                 outputStream.close();
             }
         }
 
-        public int getMode()
-        {
+        public int getMode() {
             return ((isDirectory()) ? 493 : 420);
         }
     }
 
     @Override
-    public void registerWatchPoints(Builder arg0)
-    {
+    public void registerWatchPoints(Builder arg0) {
         // uh.. nothing..
+    }
+
+    @Override
+    public void visitTreeOrBackingFile(FileVisitor fileVisitor) {
     }
 }
