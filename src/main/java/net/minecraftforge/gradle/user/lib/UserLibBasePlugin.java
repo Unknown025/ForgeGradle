@@ -138,10 +138,10 @@ public abstract class UserLibBasePlugin extends UserBasePlugin<UserExtension>
     }
 
     @Override
-    public String resolve(String pattern, Project project, UserExtension exten)
+    public String resolve(String pattern, Project project, UserExtension extension)
     {
-        pattern = super.resolve(pattern, project, exten);
-        pattern = pattern.replace("{FML_VERSION}", getFmlVersion(getMcVersion(exten)));
+        pattern = super.resolve(pattern, project, extension);
+        pattern = pattern.replace("{FML_VERSION}", getFmlVersion(getMcVersion(extension)));
         return pattern;
     }
 }

@@ -1,6 +1,7 @@
 package net.minecraftforge.gradle.tasks.dev;
 
 import static net.minecraftforge.gradle.common.Constants.NEWLINE;
+
 import groovy.lang.Closure;
 
 import java.io.File;
@@ -24,177 +25,162 @@ import org.gradle.api.tasks.TaskAction;
 
 import com.google.common.io.Files;
 
-public class GenDevProjectsTask extends DefaultTask
-{
+public class GenDevProjectsTask extends DefaultTask {
     protected DelayedFile targetDir;
 
     @Input
     protected DelayedFile json;
-    
+
     @Input
     @Optional
     private DelayedString mappingChannel, mappingVersion, mcVersion;
-    
-    private List<DelayedFile> sources = new ArrayList<DelayedFile>();
-    private List<DelayedFile> resources = new ArrayList<DelayedFile>();
-    private List<DelayedFile> testSources = new ArrayList<DelayedFile>();
-    private List<DelayedFile> testResources = new ArrayList<DelayedFile>();
+
+    private final List<DelayedFile> sources = new ArrayList<DelayedFile>();
+    private final List<DelayedFile> resources = new ArrayList<DelayedFile>();
+    private final List<DelayedFile> testSources = new ArrayList<DelayedFile>();
+    private final List<DelayedFile> testResources = new ArrayList<DelayedFile>();
 
     private final ArrayList<String> deps = new ArrayList<String>();
 
-    public GenDevProjectsTask()
-    {
+    public GenDevProjectsTask() {
         this.getOutputs().file(getTargetFile());
     }
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         parseJson();
         writeFile();
     }
 
-    private void parseJson() throws IOException
-    {
+    private void parseJson() throws IOException {
         Version version = JsonFactory.loadVersion(getJson(), getJson().getParentFile());
 
-        for (Library lib : version.getLibraries())
-        {
-            if (lib.name.contains("fixed") || lib.natives != null || lib.extract != null)
-            {
+        for (Library lib : version.getLibraries()) {
+            if (lib.name.contains("fixed") || lib.natives != null || lib.extract != null) {
                 continue;
-            }
-            else
-            {
+            } else {
                 deps.add(lib.getArtifactName());
             }
         }
     }
 
-    private void writeFile() throws IOException
-    {
+    private void writeFile() throws IOException {
         File file = getProject().file(getTargetFile().call());
         file.getParentFile().mkdirs();
         Files.touch(file);
 
         // prepare file string for writing.
-        StringBuilder o = new StringBuilder();
-        
-        a(o, 
-            "apply plugin: 'java' ",
-            "apply plugin: 'eclipse'",
-            "",
-            "sourceCompatibility = '1.6'",
-            "targetCompatibility = '1.6'",
-            "",
-            "repositories",
-            "{",
-            "    maven",
-            "    {",
-            "        name 'forge'",
-            "        url 'http://files.minecraftforge.net/maven'",
-            "    }",
-            "    mavenCentral()",
-            "    maven",
-            "    {",
-            "        name 'sonatypeSnapshot'",
-            "        url 'https://oss.sonatype.org/content/repositories/snapshots/'",
-            "    }",
-            "    maven",
-            "    {",
-            "        name 'minecraft'",
-            "        url '" + Constants.LIBRARY_URL + "'",
-            "    }",
-            "}",
-            "",
-            "dependencies",
-            "{"
+        StringBuilder stringBuilder = new StringBuilder();
+
+        appendLine(stringBuilder,
+                "apply plugin: 'java' ",
+                "apply plugin: 'eclipse'",
+                "",
+                "sourceCompatibility = '1.7'",
+                "targetCompatibility = '1.7'",
+                "",
+                "repositories",
+                "{",
+                "    maven",
+                "    {",
+                "        name 'Rainyville'",
+                "        url '" + Constants.RAINYVILLE_MAVEN + "'",
+                "    }",
+                "    maven",
+                "    {",
+                "        name 'forge'",
+                "        url 'http://files.minecraftforge.net/maven'",
+                "    }",
+                "    mavenCentral()",
+                "    maven",
+                "    {",
+                "        name 'sonatypeSnapshot'",
+                "        url 'https://oss.sonatype.org/content/repositories/snapshots/'",
+                "    }",
+                "    maven",
+                "    {",
+                "        name 'minecraft'",
+                "        url '" + Constants.LIBRARY_URL + "'",
+                "    }",
+                "}",
+                "",
+                "dependencies",
+                "{"
         );
-        
-        // read json, output json in gradle freindly format...
-        for (String dep : deps)
-        {
-            o.append("    compile '").append(dep).append('\'').append(NEWLINE);
+
+        // read json, output json in gradle friendly format...
+        for (String dep : deps) {
+            stringBuilder.append("    compile '").append(dep).append('\'').append(NEWLINE);
         }
-        
+
         String channel = getMappingChannel();
         String version = getMappingVersion();
         String mcversion = getMcVersion();
-        if (version !=null && channel != null )
-        {
-            o.append("    compile group: 'de.oceanlabs.mcp', name:'mcp_").append(channel).append("', version:'").append(version).append('-').append(mcversion).append("', ext:'zip'");
+        if (version != null && channel != null) {
+            stringBuilder.append("    compile group: 'de.oceanlabs.mcp', name:'mcp_").append(channel).append("', version:'").append(version).append('-').append(mcversion).append("', ext:'zip'");
         }
-        a(o, 
-            "",
-            "    testCompile 'junit:junit:4.5'", 
-            "}",
-            ""
+        appendLine(stringBuilder,
+                "",
+                "    testCompile 'junit:junit:4.5'",
+                "}",
+                ""
         );
 
         URI base = targetDir.call().toURI();
 
-        if (resources.size() > 0 || sources.size() > 0 || testSources.size() > 0 || testResources.size() > 0)
-        {
-            a(o, "sourceSets");
-            a(o, "{");
-            a(o, "    main");
-            a(o, "    {");
-            if (sources.size() > 0)
-            {
-                a(o, "        java");
-                a(o, "        {");
-                for (DelayedFile src : sources)
-                {
-                    o.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
+        if (resources.size() > 0 || sources.size() > 0 || testSources.size() > 0 || testResources.size() > 0) {
+            appendLine(stringBuilder, "sourceSets");
+            appendLine(stringBuilder, "{");
+            appendLine(stringBuilder, "    main");
+            appendLine(stringBuilder, "    {");
+            if (sources.size() > 0) {
+                appendLine(stringBuilder, "        java");
+                appendLine(stringBuilder, "        {");
+                for (DelayedFile src : sources) {
+                    stringBuilder.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
                 }
-                a(o, "        }");
+                appendLine(stringBuilder, "        }");
             }
-            if (resources.size() > 0)
-            {
-                a(o, "        resources");
-                a(o, "        {");
-                for (DelayedFile src : resources)
-                {
-                    o.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
+            if (resources.size() > 0) {
+                appendLine(stringBuilder, "        resources");
+                appendLine(stringBuilder, "        {");
+                for (DelayedFile src : resources) {
+                    stringBuilder.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
                 }
-                a(o, "        }");
+                appendLine(stringBuilder, "        }");
             }
-            a(o, "    }");
-            a(o, "    test");
-            a(o, "    {");
-            if (testSources.size() > 0)
-            {
-                a(o, "        java");
-                a(o, "        {");
-                for (DelayedFile src : testSources)
-                {
-                    o.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
+            appendLine(stringBuilder, "    }");
+            appendLine(stringBuilder, "    test");
+            appendLine(stringBuilder, "    {");
+            if (testSources.size() > 0) {
+                appendLine(stringBuilder, "        java");
+                appendLine(stringBuilder, "        {");
+                for (DelayedFile src : testSources) {
+                    stringBuilder.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
                 }
-                a(o, "        }");
+                appendLine(stringBuilder, "        }");
             }
-            if (testResources.size() > 0)
-            {
-                a(o, "        resources");
-                a(o, "        {");
-                for (DelayedFile src : testResources)
-                {
-                    o.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
+            if (testResources.size() > 0) {
+                appendLine(stringBuilder, "        resources");
+                appendLine(stringBuilder, "        {");
+                for (DelayedFile src : testResources) {
+                    stringBuilder.append("            srcDir '").append(relative(base, src)).append('\'').append(NEWLINE);
                 }
-                a(o, "        }");
+                appendLine(stringBuilder, "        }");
             }
-            a(o, "    }");
-            a(o, "}");
+            appendLine(stringBuilder, "    }");
+            appendLine(stringBuilder, "}");
         }
-        
+
         // and now start stuff
-        a(o, 
+        appendLine(stringBuilder,
                 "",
-                "jar { exclude \'GradleStart*\', \'net/minecraftforge/gradle/**\' }",
+                "jar { exclude 'GradleStart*', 'net/minecraftforge/gradle/**' }",
                 ""
-         );
-        
+        );
+
         // and now eclipse hacking
-        a(o,
+        appendLine(stringBuilder,
                 "def links = []",
                 "def dupes = []",
                 "eclipse.project.file.withXml { provider ->",
@@ -231,117 +217,96 @@ public class GenDevProjectsTask extends DefaultTask
                 "tasks.eclipseClasspath.dependsOn 'eclipseProject' //Make them run in correct order"
         );
 
-        Files.write(o.toString(), file, Charset.defaultCharset());
+        Files.write(stringBuilder.toString(), file, Charset.defaultCharset());
     }
 
-    private String relative(URI base, DelayedFile src)
-    {
+    private String relative(URI base, DelayedFile src) {
         String relative = base.relativize(src.call().toURI()).getPath().replace('\\', '/');
         if (!relative.endsWith("/")) relative += "/";
         return relative;
     }
 
-    private void a(StringBuilder out, String... lines)
-    {
-        for (String line : lines)
-        {
+    private void appendLine(StringBuilder out, String... lines) {
+        for (String line : lines) {
             out.append(line).append(NEWLINE);
         }
     }
 
-    private Closure<File> getTargetFile()
-    {
-        return new Closure<File>(this)
-        {
+    private Closure<File> getTargetFile() {
+        return new Closure<File>(this) {
             private static final long serialVersionUID = -6333350974905684295L;
 
             @Override
-            public File call()
-            {
+            public File call() {
                 return new File(getTargetDir(), "build.gradle");
             }
 
             @Override
-            public File call(Object obj)
-            {
+            public File call(Object obj) {
                 return new File(getTargetDir(), "build.gradle");
             }
         };
     }
 
-    public File getTargetDir()
-    {
+    public File getTargetDir() {
         return targetDir.call();
     }
 
-    public void setTargetDir(DelayedFile targetDir)
-    {
+    public void setTargetDir(DelayedFile targetDir) {
         this.targetDir = targetDir;
     }
 
-    public GenDevProjectsTask addSource(DelayedFile source)
-    {
+    public GenDevProjectsTask addSource(DelayedFile source) {
         sources.add(source);
         return this;
     }
 
-    public GenDevProjectsTask addResource(DelayedFile resource)
-    {
+    public GenDevProjectsTask addResource(DelayedFile resource) {
         resources.add(resource);
         return this;
     }
-    
-    public GenDevProjectsTask addTestSource(DelayedFile source)
-    {
+
+    public GenDevProjectsTask addTestSource(DelayedFile source) {
         testSources.add(source);
         return this;
     }
 
-    public GenDevProjectsTask addTestResource(DelayedFile resource)
-    {
+    public GenDevProjectsTask addTestResource(DelayedFile resource) {
         testResources.add(resource);
         return this;
     }
 
-    public File getJson()
-    {
+    public File getJson() {
         return json.call();
     }
 
-    public void setJson(DelayedFile json)
-    {
+    public void setJson(DelayedFile json) {
         this.json = json;
     }
 
-    public String getMappingChannel()
-    {
+    public String getMappingChannel() {
         String channel = mappingChannel.call();
         return channel.equals("{MAPPING_CHANNEL}") ? null : channel;
     }
 
-    public void setMappingChannel(DelayedString mChannel)
-    {
+    public void setMappingChannel(DelayedString mChannel) {
         this.mappingChannel = mChannel;
     }
-    
-    public String getMappingVersion()
-    {
+
+    public String getMappingVersion() {
         String version = mappingVersion.call();
         return version.equals("{MAPPING_VERSION}") ? null : version;
     }
 
-    public void setMappingVersion(DelayedString mappingVersion)
-    {
+    public void setMappingVersion(DelayedString mappingVersion) {
         this.mappingVersion = mappingVersion;
     }
-    
-    public String getMcVersion()
-    {
+
+    public String getMcVersion() {
         return mcVersion.call();
     }
 
-    public void setMcVersion(DelayedString mcVersion)
-    {
+    public void setMcVersion(DelayedString mcVersion) {
         this.mcVersion = mcVersion;
     }
 }

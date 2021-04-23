@@ -51,7 +51,8 @@ public class ObtainFernFlowerTask extends CachedTask
         connect.setInstanceFollowRedirects(true);
 
         final ZipInputStream zin = new ZipInputStream(connect.getInputStream());
-        ZipEntry entry = null;
+        ZipEntry entry;
+        boolean extracted = false;
 
         while ((entry = zin.getNextEntry()) != null)
         {
@@ -60,10 +61,14 @@ public class ObtainFernFlowerTask extends CachedTask
                 ff.getParentFile().mkdirs();
                 Files.touch(ff);
                 Files.write(ByteStreams.toByteArray(zin), ff);
+                extracted = true;
             }
         }
 
         zin.close();
+
+        if (!extracted)
+            throw new RuntimeException("Could not extract fernflower.jar!");
 
         getLogger().info("Download and Extraction complete");
     }

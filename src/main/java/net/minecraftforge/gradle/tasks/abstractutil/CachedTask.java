@@ -243,7 +243,7 @@ public abstract class CachedTask extends DefaultTask
                 if (obj instanceof String)
                 {
                     hashes.add(Constants.hash((String) obj));
-                    getLogger().debug(Constants.hash((String) obj) + " " + (String) obj);
+                    getLogger().debug(Constants.hash((String) obj) + " " + obj);
                 }
                 else if (obj instanceof File)
                 {
@@ -332,7 +332,7 @@ public abstract class CachedTask extends DefaultTask
                 methodName += new String(name);
                 
                 try {
-                    method = taskClass.getMethod(methodName, new Class[0]);
+                    method = taskClass.getMethod(methodName);
                 }
                 catch (NoSuchMethodException e)
                 {
@@ -342,7 +342,7 @@ public abstract class CachedTask extends DefaultTask
                 }
             }
             
-            return method.invoke(instance, new Object[0]);
+            return method.invoke(instance);
         }
     }
     

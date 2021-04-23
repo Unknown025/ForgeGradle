@@ -283,14 +283,14 @@ public abstract class UserBasePlugin<T extends UserExtension> extends BasePlugin
 //    protected abstract void configureDecompSetup(Task task);
 
     @Override
-    public String resolve(String pattern, Project project, T exten) {
-        pattern = super.resolve(pattern, project, exten);
+    public String resolve(String pattern, Project project, T extension) {
+        pattern = super.resolve(pattern, project, extension);
 
         pattern = pattern.replace("{MCP_DATA_DIR}", CONF_DIR);
-        pattern = pattern.replace("{USER_DEV}", this.getUserDevCacheDir(exten));
-        pattern = pattern.replace("{SRG_DIR}", this.getSrgCacheDir(exten));
-        pattern = pattern.replace("{API_CACHE_DIR}", this.getApiCacheDir(exten));
-        pattern = pattern.replace("{MC_VERSION}", getMcVersion(exten));
+        pattern = pattern.replace("{USER_DEV}", this.getUserDevCacheDir(extension));
+        pattern = pattern.replace("{SRG_DIR}", this.getSrgCacheDir(extension));
+        pattern = pattern.replace("{API_CACHE_DIR}", this.getApiCacheDir(extension));
+        pattern = pattern.replace("{MC_VERSION}", getMcVersion(extension));
 
         // do run config stuff.
         pattern = pattern.replace("{RUN_CLIENT_TWEAKER}", getClientTweaker());
@@ -298,14 +298,14 @@ public abstract class UserBasePlugin<T extends UserExtension> extends BasePlugin
         pattern = pattern.replace("{RUN_BOUNCE_CLIENT}", getClientRunClass());
         pattern = pattern.replace("{RUN_BOUNCE_SERVER}", getServerRunClass());
 
-        if (!exten.mappingsSet()) {
+        if (!extension.mappingsSet()) {
             // no mappings set?remove these tokens
             pattern = pattern.replace("{MAPPING_CHANNEL}", "");
             pattern = pattern.replace("{MAPPING_VERSION}", "");
         }
 
         if (hasApiVersion())
-            pattern = pattern.replace("{API_VERSION}", getApiVersion(exten));
+            pattern = pattern.replace("{API_VERSION}", getApiVersion(extension));
 
         pattern = pattern.replace("{API_NAME}", getApiName());
         return pattern;

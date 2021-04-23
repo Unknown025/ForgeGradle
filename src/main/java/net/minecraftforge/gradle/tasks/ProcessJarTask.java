@@ -133,7 +133,7 @@ public class ProcessJarTask extends CachedTask
         // make stuff into files.
         File tempObfJar = new File(getTemporaryDir(), "deobfed.jar"); // courtesy of gradle temp dir.
         File out = isClean ? getOutCleanJar() : getOutDirtyJar();
-        File tempExcJar = stripSynthetics ? new File(getTemporaryDir(), "excpeted.jar") : out; // courtesy of gradle temp dir.
+        File tempExcJar = stripSynthetics ? new File(getTemporaryDir(), "expected.jar") : out; // courtesy of gradle temp dir.
 
         // make the ATs list.. its a Set to avoid duplication.
         Set<File> ats = new HashSet<File>();

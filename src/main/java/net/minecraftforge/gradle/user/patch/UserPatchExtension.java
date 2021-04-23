@@ -3,78 +3,84 @@ package net.minecraftforge.gradle.user.patch;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraftforge.gradle.GradleConfigurationException;
 import net.minecraftforge.gradle.delayed.DelayedObject;
 import net.minecraftforge.gradle.user.UserExtension;
 
 import org.gradle.api.ProjectConfigurationException;
 
-public class UserPatchExtension extends UserExtension
-{    
+public class UserPatchExtension extends UserExtension {
     private int maxFuzz = 0;
 
     private String apiVersion;
-    private ArrayList<Object> ats = new ArrayList<Object>();
+    private final ArrayList<Object> ats = new ArrayList<Object>();
 
-    public UserPatchExtension(UserPatchBasePlugin plugin)
-    {
+    public UserPatchExtension(UserPatchBasePlugin plugin) {
         super(plugin);
     }
-    
-    public void accessT(Object obj) { at(obj); }
-    public void accessTs(Object... obj) { ats(obj); }
-    public void accessTransformer(Object obj) { at(obj); }
-    public void accessTransformers(Object... obj) { ats(obj); }
 
-    public void at(Object obj)
-    {
+    public void accessT(Object obj) {
+        at(obj);
+    }
+
+    public void accessTs(Object... obj) {
+        ats(obj);
+    }
+
+    public void accessTransformer(Object obj) {
+        at(obj);
+    }
+
+    public void accessTransformers(Object... obj) {
+        ats(obj);
+    }
+
+    public void at(Object obj) {
         ats.add(obj);
     }
 
-    public void ats(Object... obj)
-    {
+    public void ats(Object... obj) {
         for (Object object : obj)
             ats.add(new DelayedObject(object, project));
     }
 
-    public List<Object> getAccessTransformers()
-    {
+    public List<Object> getAccessTransformers() {
         return ats;
     }
 
-    public String getApiVersion()
-    {
+    public String getApiVersion() {
         if (apiVersion == null)
-            throw new ProjectConfigurationException("You must set the Minecraft Version!", new NullPointerException());
-        
+            throw new ProjectConfigurationException("You must set the Minecraft Version!", new NullPointerException("API Version is null."));
+
         return apiVersion;
     }
-    
-    public int getMaxFuzz()
-    {
+
+    public int getMaxFuzz() {
         return maxFuzz;
     }
 
-    public void setMaxFuzz(int fuzz)
-    {
+    public void setMaxFuzz(int fuzz) {
         this.maxFuzz = fuzz;
     }
-    
+
     public void setVersion(String str) // magic goes here
     {
         checkAndSetVersion(str);
-        
+
         // now check the mappings from the base plugin
         checkMappings();
     }
-    
-    private void checkAndSetVersion(String str)
-    {
-        str = str.trim();
-        int idx = str.indexOf('-');
+
+    private void checkAndSetVersion(String setVersion) {
+        setVersion = setVersion.trim();
+        int idx = setVersion.indexOf('-');
         if (idx == -1)
             throw new IllegalArgumentException("You must specify the full forge version, including MC version in your build.gradle. Example: 1.12.2-14.23.5.2811");
-        this.version = str.substring(0, idx); //MC Version
-        this.apiVersion = str;
+        this.version = setVersion.substring(0, idx); //MC Version
+        this.apiVersion = setVersion;
+
+        if (!this.version.equals("1.7.10") && !this.version.equals("1.6.4"))
+            throw new GradleConfigurationException("Only 1.6.4 & 1.7.10 is supported! Please check your configuration.");
 
         /*
          * Old FG used to use a horribly outdated MASSIVE json file for trying to be 'smart' when processing the version information.

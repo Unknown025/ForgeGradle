@@ -343,15 +343,15 @@ public abstract class UserPatchBasePlugin extends UserBasePlugin<UserPatchExtens
     }
     
     @Override
-    public String resolve(String pattern, Project project, UserPatchExtension exten)
+    public String resolve(String pattern, Project project, UserPatchExtension extension)
     {
         // override tweaker and server run class.
         // do run config stuff.
-        String prefix = getMcVersion(exten).startsWith("1.8") ? "net.minecraftforge." : "cpw.mods.";
+        String prefix = getMcVersion(extension).startsWith("1.8") ? "net.minecraftforge." : "cpw.mods.";
         pattern = pattern.replace("{RUN_CLIENT_TWEAKER}", prefix + getClientTweaker());
         pattern = pattern.replace("{RUN_SERVER_TWEAKER}", prefix + getServerTweaker());
         
-        pattern = super.resolve(pattern, project, exten);
+        pattern = super.resolve(pattern, project, extension);
         
         return pattern;
     }
